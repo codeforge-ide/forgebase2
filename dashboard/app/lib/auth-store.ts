@@ -11,6 +11,7 @@ interface AuthStore {
   token: string | null
   refreshToken: string | null
   user: User | null
+  isAuthenticated: boolean
   setAuth: (token: string, refreshToken: string, user: User) => void
   clearAuth: () => void
   setUser: (user: User) => void
@@ -22,11 +23,13 @@ export const useAuthStore = create<AuthStore>(
       token: null,
       refreshToken: null,
       user: null,
+      isAuthenticated: false,
       setAuth: (token, refreshToken, user) =>
-        set({ token, refreshToken, user }),
-      clearAuth: () => set({ token: null, refreshToken: null, user: null }),
+        set({ token, refreshToken, user, isAuthenticated: true }),
+      clearAuth: () =>
+        set({ token: null, refreshToken: null, user: null, isAuthenticated: false }),
       setUser: (user) => set({ user }),
     }),
-    { name: 'auth-store' }
+    { name: 'forgebase-auth' }
   )
 )
