@@ -107,15 +107,125 @@ impl Default for ServerConfig {
     }
 }
 
+impl Default for DatabaseConfig {
+    fn default() -> Self {
+        Self {
+            url: "postgresql://forgebase:forgebase@localhost:5432/forgebase".to_string(),
+            max_connections: 100,
+            min_connections: 10,
+            acquire_timeout: 30,
+            idle_timeout: 600,
+        }
+    }
+}
+
+impl Default for AuthConfig {
+    fn default() -> Self {
+        Self {
+            jwt_secret: "dev-secret-key-change-in-production".to_string(),
+            jwt_expiration: 3600,
+            refresh_token_expiration: 2592000,
+            password_min_length: 8,
+            enable_email_verification: true,
+            enable_magic_links: true,
+            oauth_providers: HashMap::new(),
+        }
+    }
+}
+
+impl Default for StorageConfig {
+    fn default() -> Self {
+        Self {
+            backend: StorageBackend::Local,
+            bucket: "forgebase-bucket".to_string(),
+            region: None,
+            endpoint: None,
+            access_key: None,
+            secret_key: None,
+            max_file_size: 500 * 1024 * 1024, // 500MB
+        }
+    }
+}
+
+impl Default for EmailConfig {
+    fn default() -> Self {
+        Self {
+            smtp_host: "localhost".to_string(),
+            smtp_port: 1025,
+            smtp_username: String::new(),
+            smtp_password: String::new(),
+            from_email: "noreply@forgebase.dev".to_string(),
+            from_name: "ForgeBase".to_string(),
+        }
+    }
+}
+
+impl Default for SitesConfig {
+    fn default() -> Self {
+        Self {
+            storage_path: "./data/sites".to_string(),
+            max_deployment_size: 500 * 1024 * 1024, // 500MB
+            custom_domains_enabled: true,
+            ssl_enabled: true,
+        }
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            server: ServerConfig::default(),
+            database: DatabaseConfig::default(),
+            auth: AuthConfig::default(),
+            storage: StorageConfig::default(),
+            email: EmailConfig::default(),
+            sites: SitesConfig::default(),
+        }
+    }
+}
+
 impl Config {
     pub fn from_env() -> anyhow::Result<Self> {
         dotenvy::dotenv().ok();
         
-        let config = config::Config::builder()
-            .add_source(config::Environment::default().separator("__"))
-            .build()?;
+        let mut builder = config::Config::builder()
+            .add_source(config::Environment::default().separator("__"));
         
-        Ok(config.try_deserialize()?)
+        // Try to build the config, and fall back to defaults if any field is missing
+        match builder.build() {
+            Ok(cfg) => cfg.try_deserialize::<Self>()
+                .or_else(|_| {
+                    // If deserialization fails due to missing fields, use defaults
+                    // but override with whatever is actually provided
+                    let mut defaults = Config::default();
+                    
+                    // Override with actual env vars if they exist
+                    if let Ok(host) = std::env::var("SERVER__HOST") {
+                        defaults.server.host = host;
+                    }
+                    if let Ok(port_str) = std::env::var("SERVER__PORT") {
+                        if let Ok(port) = port_str.parse() {
+                            defaults.server.port = port;
+                        }
+                    }
+                    if let Ok(env_str) = std::env::var("SERVER__ENVIRONMENT") {
+                        defaults.server.environment = match env_str.as_str() {
+                            "production" => Environment::Production,
+                            "staging" => Environment::Staging,
+                            _ => Environment::Development,
+                        };
+                    }
+                    if let Ok(db_url) = std::env::var("DATABASE__URL") {
+                        defaults.database.url = db_url;
+                    }
+                    if let Ok(jwt_secret) = std::env::var("AUTH__JWT_SECRET") {
+                        defaults.auth.jwt_secret = jwt_secret;
+                    }
+                    
+                    Ok(defaults)
+                }),
+            Err(_) => Ok(Config::default())
+        }
     }
 
     pub fn from_file(path: &str) -> anyhow::Result<Self> {
