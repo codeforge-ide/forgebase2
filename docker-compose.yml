@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: forgebase-postgres
+    environment:
+      POSTGRES_USER: forgebase
+      POSTGRES_PASSWORD: forgebase_dev_password
+      POSTGRES_DB: forgebase
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forgebase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - forgebase-network
+
+  # ForgeBase API Server
+  forgebase:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: forgebase-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Server Configuration
+      SERVER__HOST: 0.0.0.0
+      SERVER__PORT: 8080
+      SERVER__ENVIRONMENT: development
+      SERVER__CORS_ORIGINS: http://localhost:3000,http://localhost:5173,http://localhost:8080
+      SERVER__MAX_BODY_SIZE: 10485760
+
+      # Database Configuration
+      DATABASE__URL: postgresql://forgebase:forgebase_dev_password@postgres:5432/forgebase
+      DATABASE__MAX_CONNECTIONS: 20
+      DATABASE__MIN_CONNECTIONS: 5
+      DATABASE__ACQUIRE_TIMEOUT: 30
+      DATABASE__IDLE_TIMEOUT: 600
+
+      # Authentication Configuration
+      AUTH__JWT_SECRET: dev-secret-key-change-this-in-production-NOW
+      AUTH__JWT_EXPIRATION: 3600
+      AUTH__REFRESH_TOKEN_EXPIRATION: 2592000
+      AUTH__PASSWORD_MIN_LENGTH: 8
+      AUTH__ENABLE_EMAIL_VERIFICATION: "true"
+      AUTH__ENABLE_MAGIC_LINKS: "true"
+
+      # Email Configuration (Mailhog for development)
+      EMAIL__SMTP_HOST: mailhog
+      EMAIL__SMTP_PORT: 1025
+      EMAIL__SMTP_USERNAME: ""
+      EMAIL__SMTP_PASSWORD: ""
+      EMAIL__FROM_EMAIL: noreply@forgebase.local
+      EMAIL__FROM_NAME: ForgeBase
+
+      # Storage Configuration
+      STORAGE__BACKEND: local
+      STORAGE__BUCKET: forgebase-bucket
+      STORAGE__MAX_FILE_SIZE: 524288000
+
+      # Sites Configuration
+      SITES__STORAGE_PATH: /app/data/sites
+      SITES__MAX_DEPLOYMENT_SIZE: 524288000
+      SITES__CUSTOM_DOMAINS_ENABLED: "true"
+      SITES__SSL_ENABLED: "true"
+
+      # Logging
+      RUST_LOG: forgebase=debug,tower_http=debug
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - forgebase-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Mailhog for email testing (development only)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: forgebase-mailhog
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI
+    networks:
+      - forgebase-network
+
+  # Optional: Redis for caching/sessions (future use)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: forgebase-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - forgebase-network
+
+volumes:
+  postgres_data:
+  # redis_data:
+
+networks:
+  forgebase-network:
+    driver: bridge
