@@ -1,0 +1,49 @@
+[package]
+name = "forgebase-sites"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+forgebase-core = { path = "../forgebase-core" }
+forgebase-storage = { path = "../forgebase-storage" }
+forgebase-edge = { path = "../forgebase-edge" }
+
+tokio = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+hyper = { workspace = true }
+reqwest = { workspace = true }
+bytes = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+regex = { workspace = true }
+url = { workspace = true }
+validator = { workspace = true }
+
+# Build and deployment
+walkdir = "2.4"
+tar = "0.4"
+flate2 = "1.0"
+sha2 = "0.10"
+
+# Static site generation
+pulldown-cmark = "0.9"
+minify-html = "0.15"
+
+# MIME type detection
+mime_guess = "2.0"
+
+# SQL
+sqlx = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
