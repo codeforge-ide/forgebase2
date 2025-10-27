@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+.github
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Build outputs
+target/
+*.tar.gz
+*.zip
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Data
+data/
+.DS_Store
+
+# Testing
+.coverage
+*.lcov
+
+# Node modules (if any frontend code)
+node_modules/
+dist/
+build/
+
+# Cargo
+Cargo.lock
