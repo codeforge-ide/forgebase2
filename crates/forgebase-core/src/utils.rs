@@ -5,9 +5,14 @@ pub fn generate_id() -> Uuid {
     Uuid::new_v4()
 }
 
-/// Validate email format
+/// Validate email format (simple check - use regex or email-validator crate for production)
 pub fn is_valid_email(email: &str) -> bool {
-    email.contains('@') && email.len() > 3
+    let parts: Vec<&str> = email.split('@').collect();
+    if parts.len() != 2 {
+        return false;
+    }
+    let (local, domain) = (parts[0], parts[1]);
+    !local.is_empty() && !domain.is_empty() && domain.contains('.')
 }
 
 /// Generate a random token
