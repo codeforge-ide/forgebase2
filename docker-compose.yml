@@ -118,17 +118,19 @@ networks:
     driver: bridge
 
   # ForgeBase Dashboard
-  dashboard:
+
+  # ForgeBase Web (Next.js Dashboard + Landing Page)
+  web:
     build:
       context: ./dashboard
       dockerfile: Dockerfile
-    container_name: forgebase-dashboard
+    container_name: forgebase-web
     depends_on:
       - forgebase
     ports:
       - "3000:3000"
     environment:
-      VITE_API_URL: http://forgebase:8080
+      NEXT_PUBLIC_API_URL: http://forgebase:8080
     networks:
       - forgebase-network
     healthcheck:

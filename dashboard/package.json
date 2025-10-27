@@ -1,35 +1,26 @@
 {
-  "name": "forgebase-web",
+  "name": "dashboard",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "format": "prettier --write ."
+    "lint": "eslint"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "next": "^14.1.0",
-    "typescript": "^5.3.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@types/node": "^20.10.0",
-    "tailwindcss": "^3.3.0",
-    "postcss": "^8.4.0",
-    "autoprefixer": "^10.4.0",
-    "axios": "^1.6.0",
-    "zustand": "^4.4.0",
-    "lucide-react": "^0.294.0",
-    "clsx": "^2.0.0",
-    "js-cookie": "^3.0.5",
-    "@types/js-cookie": "^3.0.6"
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "next": "16.0.0"
   },
   "devDependencies": {
-    "eslint": "^8.55.0",
-    "eslint-config-next": "^14.1.0",
-    "prettier": "^3.1.0"
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.0"
   }
 }
