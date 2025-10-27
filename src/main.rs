@@ -1,20 +1,9 @@
-use axum::{
-    Router,
-    http::StatusCode,
-    routing::get,
-    Json,
-};
-use serde_json::json;
+mod app;
+
 use std::time::Duration;
 use tracing_subscriber;
 use forgebase_core::Config;
-use forgebase_db::{DatabasePool, PoolConfig, init_database};
-
-// State struct to hold shared resources
-#[derive(Clone)]
-pub struct AppState {
-    pub db: DatabasePool,
-}
+use forgebase_db::{DatabasePool, PoolConfig};
 
 #[tokio::main]
 async fn main() {
@@ -55,10 +44,10 @@ async fn main() {
 
     let db_pool = match DatabasePool::new(pool_config).await {
         Ok(pool) => {
-            tracing::info!("Database pool created successfully");
+            tracing::info!("Database pool created successfully (size: {})", pool.size());
             
             // Run migrations
-            if let Err(e) = init_database(pool.pool()).await {
+            if let Err(e) = forgebase_db::init_database(pool.pool()).await {
                 tracing::error!("Failed to initialize database: {}", e);
                 std::process::exit(1);
             }
@@ -72,38 +61,9 @@ async fn main() {
                 std::process::exit(1);
             }
             tracing::warn!("Continuing without database (development mode)");
-            // Create a dummy pool - this will fail at runtime if DB operations are attempted
-            // In a real implementation, you might want to skip database operations or use mocks
             panic!("Database connection is required for now");
         }
     };
-
-    // Initialize application state
-    let app_state = AppState {
-        db: db_pool.clone(),
-    };
-
-    // Build the router
-    let mut router = Router::new()
-        .route("/", get(root_handler))
-        .route("/health", get(health_check))
-        .route("/api/v1/health", get(health_check_json))
-        .with_state(app_state);
-
-    // TODO: Add routes as we build out features:
-    // - Authentication routes from forgebase-auth
-    // - Sites/Deployment routes from forgebase-sites
-    // - Storage routes from forgebase-storage
-    // - Database routes from forgebase-db
-    // - GraphQL API from forgebase-api
-
-    // Add CORS middleware
-    use tower_http::cors::CorsLayer;
-    router = router.layer(CorsLayer::very_permissive());
-
-    // Add trace layer
-    use tower_http::trace::TraceLayer;
-    router = router.layer(TraceLayer::new_for_http());
 
     // Start server
     let addr = format!("{}:{}", config.server.host, config.server.port)
@@ -117,31 +77,9 @@ async fn main() {
         .await
         .expect("Failed to bind to address");
 
-    axum::serve(listener, router)
+    let app = app::create_app(db_pool, config).await;
+
+    axum::serve(listener, app)
         .await
         .expect("Server failed");
-}
-
-async fn root_handler() -> Json<serde_json::Value> {
-    Json(json!({
-        "name": "ForgeBase",
-        "version": env!("CARGO_PKG_VERSION"),
-        "description": "Open-source Firebase/Supabase/Vercel alternative",
-        "status": "running"
-    }))
-}
-
-async fn health_check() -> StatusCode {
-    StatusCode::OK
-}
-
-async fn health_check_json() -> (StatusCode, Json<serde_json::Value>) {
-    (
-        StatusCode::OK,
-        Json(json!({
-            "status": "healthy",
-            "version": env!("CARGO_PKG_VERSION"),
-            "timestamp": chrono::Utc::now().to_rfc3339()
-        })),
-    )
 }
